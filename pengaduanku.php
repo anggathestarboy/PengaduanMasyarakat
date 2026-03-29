@@ -1,28 +1,27 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Koneksi database
+session_start();
 require_once "config/db.php";
 
-// Ambil data pengaduan dari database dengan JOIN users
-$query = "SELECT pengaduan.*, users.username, users.fullname 
-          FROM pengaduan 
-          JOIN users ON pengaduan.user_id = users.id
-          WHERE pengaduan.status IN ('selesai', 'diproses')
-          ORDER BY pengaduan.date DESC";
+// 🔒 cek login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+
+// ambil data pengaduan milik user login
+$query = "SELECT * FROM pengaduan 
+          WHERE user_id = '$user_id'
+          ORDER BY date DESC";
 
 $result = mysqli_query($conn, $query);
 
-// Hitung statistik
-$total_pengaduan = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan"))['total'];
-$total_selesai = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'selesai'"))['total'];
-$total_proses = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'diproses'"))['total'];
-$total_users = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM users"))['total'];
-
-// Cek status login
-$isLoggedIn = isset($_SESSION['login']) && $_SESSION['login'] === true;
+// Hitung statistik untuk user ini
+$total_user_pengaduan = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE user_id = '$user_id'"))['total'];
+$total_user_selesai = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE user_id = '$user_id' AND status = 'selesai'"))['total'];
+$total_user_proses = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE user_id = '$user_id' AND status = 'diproses'"))['total'];
+$total_user_baru = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE user_id = '$user_id' AND status = 'baru'"))['total'];
 
 // Fungsi helper
 function getStatusBadgeClass($status) {
@@ -91,6 +90,7 @@ function getGradientColor($status) {
 }
 
 function getInitials($name) {
+    if (empty($name)) return '?';
     $words = explode(' ', $name);
     $initials = '';
     foreach ($words as $word) {
@@ -114,7 +114,7 @@ function truncateText($text, $limit = 150) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pengaduan Masyarakat — Layanan Publik Digital</title>
+  <title>Pengaduan Saya — Pengaduan Masyarakat</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -145,32 +145,10 @@ function truncateText($text, $limit = 150) {
     #mobile-menu { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s; opacity: 0; }
     #mobile-menu.open { max-height: 480px; opacity: 1; }
 
-    .hero-bg {
-      background: linear-gradient(135deg, #0A1628 0%, #0F2044 40%, #1B4FD8 100%);
-      position: relative;
-      overflow: hidden;
-    }
-    .hero-bg::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 70% 50%, rgba(27,79,216,0.45) 0%, transparent 65%),
-                  radial-gradient(ellipse at 10% 80%, rgba(201,150,58,0.15) 0%, transparent 50%);
-    }
-    .hero-grid {
-      position: absolute; inset: 0;
-      background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-      background-size: 48px 48px;
-    }
-
-    .badge-float { animation: floatY 3.5s ease-in-out infinite; }
-    @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-
     .complaint-card { transition: transform 0.25s ease, box-shadow 0.25s ease; }
     .complaint-card:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(27,79,216,0.14); }
 
     .stat-box { background: linear-gradient(135deg, #fff 0%, #EBF0FD 100%); }
-    .wave-divider { line-height: 0; }
 
     .btn-primary { position: relative; overflow: hidden; }
     .btn-primary::after {
@@ -209,7 +187,7 @@ function truncateText($text, $limit = 150) {
       overflow: hidden;
     }
 
-    /* Modal Styles - Tanpa bg-black */
+    /* Modal Styles */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -254,85 +232,45 @@ function truncateText($text, $limit = 150) {
       background: #1B4FD8;
       border-radius: 4px;
     }
+    
+    .admin-note {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-left: 4px solid #f59e0b;
+    }
   </style>
 </head>
 <body>
 
 <!-- NAVBAR -->
-<?php include "components/navbar.php" ?>
+<?php include "components/navbar.php"; ?>
 
-<!-- HERO -->
-<section id="home" class="hero-bg min-h-screen flex items-center pt-16">
-  <div class="hero-grid"></div>
-  <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-    <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-      <div class="text-white">
-        <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 rounded-full px-4 py-1.5 text-xs font-semibold text-blue-200 mb-6 tracking-wide">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          Sistem Aktif — Layanan 24 Jam
-        </div>
-        <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-          Suara Anda,<br/>
-          <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-gold-light">Perubahan Nyata</span>
-        </h1>
-        <p class="text-blue-100 text-base lg:text-lg leading-relaxed mb-8 max-w-lg font-light">
-          Platform pengaduan masyarakat resmi yang transparan, aman, dan responsif. Laporkan masalah di lingkungan Anda dan pantau progres penanganannya secara real-time.
-        </p>
-        <div class="flex flex-wrap gap-4">
-          <?php if ($isLoggedIn): ?>
-            <a href="/create_pengaduan.php" class="btn-primary group inline-flex items-center gap-2.5 bg-white text-cobalt font-bold px-7 py-3.5 rounded-2xl hover:shadow-2xl hover:shadow-white/20 transition-all duration-300 text-sm">
-              <i class="fa-solid fa-pen-to-square"></i>
-              Buat Pengaduan
-              <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-            </a>
-          <?php else: ?>
-            <a href="/login.php" class="btn-primary group inline-flex items-center gap-2.5 bg-white text-cobalt font-bold px-7 py-3.5 rounded-2xl hover:shadow-2xl hover:shadow-white/20 transition-all duration-300 text-sm">
-              <i class="fa-solid fa-right-to-bracket"></i>
-              Login Sekarang
-              <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
-            </a>
-          <?php endif; ?>
-        </div>
-        <div class="flex flex-wrap gap-6 mt-10 pt-10 border-t border-white/10">
-          <div>
-            <div class="font-display text-2xl font-bold text-white"><?= number_format($total_pengaduan) ?></div>
-            <div class="text-blue-300 text-xs font-medium mt-0.5">Pengaduan Masuk</div>
-          </div>
-          <div class="w-px bg-white/10"></div>
-          <div>
-            <div class="font-display text-2xl font-bold text-white"><?= number_format($total_selesai) ?></div>
-            <div class="text-blue-300 text-xs font-medium mt-0.5">Kasus Diselesaikan</div>
-          </div>
-        </div>
+<!-- HEADER SECTION -->
+<section class="pt-32 pb-12 bg-gradient-to-b from-[#F7F9FF] to-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center">
+      <div class="inline-flex items-center gap-2 bg-cobalt/10 text-cobalt rounded-full px-4 py-1.5 text-xs font-bold mb-4 tracking-widest uppercase">
+        <i class="fa-solid fa-folder-open"></i> Riwayat Saya
       </div>
-      <div class="hidden lg:flex justify-center relative">
-        <div class="badge-float relative">
-          <div class="bg-white rounded-full shadow-2xl p-6 w-32 h-32 flex items-center justify-center relative">
-            <div class="w-16 h-16 bg-cobalt/10 rounded-full flex items-center justify-center">
-              <i class="fa-solid fa-landmark text-cobalt text-3xl"></i>
-            </div>
-          </div>
-        </div>
-      </div>
+      <h1 class="font-display text-4xl sm:text-5xl font-bold text-navy-900 mb-4">
+        Pengaduan <span class="text-cobalt">Saya</span>
+      </h1>
+      <p class="text-gray-500 text-base max-w-2xl mx-auto">
+        Lihat dan pantau seluruh pengaduan yang telah Anda laporkan beserta status penanganannya.
+      </p>
     </div>
-  </div>
-  <div class="wave-divider absolute bottom-0 left-0 right-0">
-    <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <path d="M0,48 C360,80 1080,0 1440,48 L1440,80 L0,80 Z" fill="#F7F9FF"/>
-    </svg>
   </div>
 </section>
 
-<!-- STATS STRIP -->
-<section class="py-8 bg-white border-y border-blue-50">
+<!-- STATS STRIP (User Specific) -->
+<section class="py-6 bg-white border-y border-blue-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="stat-box rounded-2xl p-4 flex items-center gap-4 border border-blue-100">
         <div class="w-12 h-12 bg-cobalt/10 rounded-xl flex items-center justify-center flex-shrink-0">
           <i class="fa-solid fa-inbox text-cobalt text-lg"></i>
         </div>
         <div>
-          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_pengaduan) ?></div>
+          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_user_pengaduan) ?></div>
           <div class="text-gray-500 text-xs font-medium">Total Pengaduan</div>
         </div>
       </div>
@@ -341,7 +279,7 @@ function truncateText($text, $limit = 150) {
           <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
         </div>
         <div>
-          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_selesai) ?></div>
+          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_user_selesai) ?></div>
           <div class="text-gray-500 text-xs font-medium">Kasus Selesai</div>
         </div>
       </div>
@@ -350,47 +288,43 @@ function truncateText($text, $limit = 150) {
           <i class="fa-solid fa-hourglass-half text-amber-500 text-lg"></i>
         </div>
         <div>
-          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_proses) ?></div>
+          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_user_proses) ?></div>
           <div class="text-gray-500 text-xs font-medium">Sedang Diproses</div>
         </div>
       </div>
       <div class="stat-box rounded-2xl p-4 flex items-center gap-4 border border-blue-100">
         <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-          <i class="fa-solid fa-users text-cobalt text-lg"></i>
+          <i class="fa-solid fa-clock text-blue-500 text-lg"></i>
         </div>
         <div>
-          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_users) ?>+</div>
-          <div class="text-gray-500 text-xs font-medium">Pengguna Terdaftar</div>
+          <div class="font-display font-bold text-2xl text-navy-900"><?= number_format($total_user_baru) ?></div>
+          <div class="text-gray-500 text-xs font-medium">Menunggu</div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- PENGADUAN LIST -->
-<section id="pengaduan" class="py-20 bg-[#F7F9FF]">
+<!-- PENGADUAN SAYA LIST -->
+<section class="py-16 bg-[#F7F9FF]">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="reveal text-center mb-14">
-      <div class="inline-flex items-center gap-2 bg-cobalt/10 text-cobalt rounded-full px-4 py-1.5 text-xs font-bold mb-4 tracking-widest uppercase">
-        <i class="fa-solid fa-list-ul"></i> Daftar Pengaduan
-      </div>
-      <h2 class="font-display text-3xl sm:text-4xl font-bold text-navy-900 mb-4">Pengaduan Terkini</h2>
-      <p class="text-gray-500 text-base max-w-lg mx-auto">Pantau seluruh laporan pengaduan masyarakat yang masuk, sedang diproses, maupun yang telah diselesaikan.</p>
-    </div>
-
+    
+    <!-- Filter Bar -->
     <div class="reveal flex flex-wrap gap-2 justify-center mb-10">
-      <button onclick="filterCards('all')" class="filter-btn px-4 py-2 text-sm font-semibold rounded-xl border transition-all duration-200">Semua</button>
-      <button onclick="filterCards('diproses')" class="filter-btn px-4 py-2 text-sm font-semibold rounded-xl border border-amber-200 text-amber-600 hover:bg-amber-500 hover:text-white transition-all duration-200">Diproses</button>
-      <button onclick="filterCards('selesai')" class="filter-btn px-4 py-2 text-sm font-semibold rounded-xl border border-emerald-200 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all duration-200">Selesai</button>
+      <button onclick="filterCards('all')" class="filter-btn px-5 py-2.5 text-sm font-semibold rounded-xl border transition-all duration-200 bg-cobalt text-white border-cobalt shadow-sm">Semua</button>
+      <!-- <button onclick="filterCards('baru')" class="filter-btn px-5 py-2.5 text-sm font-semibold rounded-xl border border-blue-200 text-blue-600 hover:bg-blue-500 hover:text-white transition-all duration-200">Baru</button> -->
+      <button onclick="filterCards('diproses')" class="filter-btn px-5 py-2.5 text-sm font-semibold rounded-xl border border-amber-200 text-amber-600 hover:bg-amber-500 hover:text-white transition-all duration-200">Diproses</button>
+      <button onclick="filterCards('selesai')" class="filter-btn px-5 py-2.5 text-sm font-semibold rounded-xl border border-emerald-200 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all duration-200">Selesai</button>
     </div>
 
+    <!-- Cards Grid -->
     <div id="cards-container" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <?php if (mysqli_num_rows($result) > 0): ?>
         <?php while ($pengaduan = mysqli_fetch_assoc($result)): 
           $status = strtolower($pengaduan['status'] ?? 'baru');
           $progressWidth = getProgressWidth($status);
           $gradientColor = getGradientColor($status);
-          $initials = getInitials($pengaduan['fullname']);
+          $initials = getInitials($_SESSION['fullname'] ?? 'User');
           $imagePath = !empty($pengaduan['img']) ? 'uploads/' . $pengaduan['img'] : null;
           $shortDescription = truncateText($pengaduan['description'] ?? 'Deskripsi pengaduan', 150);
         ?>
@@ -422,7 +356,7 @@ function truncateText($text, $limit = 150) {
               <?php endif; ?>
               
               <h3 class="font-display font-bold text-navy-900 text-lg mb-2 line-clamp-2"><?= htmlspecialchars($pengaduan['title'] ?? 'Judul Pengaduan') ?></h3>
-              <p class="text-gray-500 text-sm leading-relaxed mb-4"><?= htmlspecialchars($shortDescription) ?></p>
+              <p class="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-3"><?= htmlspecialchars($shortDescription) ?></p>
               
               <?php if (!empty($pengaduan['location'])): ?>
                 <div class="flex items-center gap-2 text-xs text-gray-400 mb-4">
@@ -441,7 +375,7 @@ function truncateText($text, $limit = 150) {
                     <span class="text-white text-xs font-bold"><?= $initials ?></span>
                   </div>
                   <div>
-                    <span class="text-xs text-gray-500 font-medium block"><?= htmlspecialchars($pengaduan['username'] ?? 'Pengguna') ?></span>
+                    <span class="text-xs text-gray-500 font-medium block">Anda</span>
                   </div>
                 </div>
                 <span class="text-xs text-gray-400"><i class="fa-regular fa-calendar mr-1"></i><?= date('d M Y', strtotime($pengaduan['date'])) ?></span>
@@ -457,21 +391,24 @@ function truncateText($text, $limit = 150) {
           </div>
         <?php endwhile; ?>
       <?php else: ?>
-        <div class="col-span-full text-center py-12">
-          <i class="fa-solid fa-inbox text-6xl text-gray-300 mb-4"></i>
-          <p class="text-gray-500">Belum ada pengaduan. Jadilah yang pertama melaporkan!</p>
-          <?php if ($isLoggedIn): ?>
-            <a href="/buat-pengaduan.php" class="inline-block mt-4 text-cobalt font-semibold hover:underline">Buat Pengaduan →</a>
-          <?php else: ?>
-            <a href="/login.php" class="inline-block mt-4 text-cobalt font-semibold hover:underline">Login untuk membuat pengaduan →</a>
-          <?php endif; ?>
+        <div class="col-span-full text-center py-16">
+          <div class="bg-white rounded-2xl p-12 max-w-md mx-auto shadow-sm border border-blue-100">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <i class="fa-solid fa-folder-open text-4xl text-gray-400"></i>
+            </div>
+            <h3 class="font-display text-xl font-bold text-navy-900 mb-2">Belum Ada Pengaduan</h3>
+            <p class="text-gray-500 text-sm mb-6">Anda belum membuat pengaduan apapun. Mulai laporkan masalah di sekitar Anda sekarang!</p>
+            <a href="/create_pengaduan.php" class="inline-flex items-center gap-2 bg-gradient-to-r from-cobalt to-navy-700 text-white font-semibold px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 text-sm">
+              <i class="fa-solid fa-pen-to-square"></i> Buat Pengaduan Sekarang
+            </a>
+          </div>
         </div>
       <?php endif; ?>
     </div>
   </div>
 </section>
 
-<!-- MODAL POPUP DETAIL PENGADUAN (tanpa bg-black) -->
+<!-- MODAL POPUP DETAIL PENGADUAN -->
 <div id="detailModal" class="modal-overlay">
   <div class="modal-container">
     <div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center rounded-t-2xl">
@@ -486,73 +423,6 @@ function truncateText($text, $limit = 150) {
   </div>
 </div>
 
-<!-- TENTANG -->
-<section id="tentang" class="py-20 bg-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid lg:grid-cols-2 gap-16 items-center">
-      <div class="reveal order-2 lg:order-1">
-        <div class="relative">
-          <div class="bg-gradient-to-br from-cobalt/10 to-navy-800/5 rounded-3xl p-8">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="bg-white rounded-2xl p-5 shadow-sm border border-blue-50">
-                <i class="fa-solid fa-shield-check text-cobalt text-2xl mb-3"></i>
-                <h4 class="font-bold text-navy-900 text-sm mb-1">Aman & Terenkripsi</h4>
-                <p class="text-gray-500 text-xs">Data Anda terlindungi dengan enkripsi tingkat militer</p>
-              </div>
-              <div class="bg-white rounded-2xl p-5 shadow-sm border border-blue-50">
-                <i class="fa-solid fa-eye text-emerald-500 text-2xl mb-3"></i>
-                <h4 class="font-bold text-navy-900 text-sm mb-1">100% Transparan</h4>
-                <p class="text-gray-500 text-xs">Setiap proses dapat dipantau secara real-time</p>
-              </div>
-              <div class="bg-white rounded-2xl p-5 shadow-sm border border-blue-50">
-                <i class="fa-solid fa-bolt text-amber-500 text-2xl mb-3"></i>
-                <h4 class="font-bold text-navy-900 text-sm mb-1">Respons Cepat</h4>
-                <p class="text-gray-500 text-xs">Rata-rata respons dalam 1×24 jam kerja</p>
-              </div>
-              <div class="bg-gradient-to-br from-cobalt to-navy-700 rounded-2xl p-5 text-white">
-                <i class="fa-solid fa-star text-yellow-300 text-2xl mb-3"></i>
-                <div class="font-display text-3xl font-bold">4.9<span class="text-lg text-blue-200">/5</span></div>
-                <p class="text-blue-200 text-xs mt-1">Rating Kepuasan Pengguna</p>
-              </div>
-            </div>
-          </div>
-          <div class="absolute -top-4 -right-4 w-16 h-16 bg-gold rounded-2xl flex items-center justify-center shadow-lg">
-            <i class="fa-solid fa-award text-white text-xl"></i>
-          </div>
-        </div>
-      </div>
-      <div class="reveal order-1 lg:order-2">
-        <div class="inline-flex items-center gap-2 bg-cobalt/10 text-cobalt rounded-full px-4 py-1.5 text-xs font-bold mb-4 tracking-widest uppercase">
-          <i class="fa-solid fa-circle-info"></i> Tentang Kami
-        </div>
-        <h2 class="font-display text-3xl sm:text-4xl font-bold text-navy-900 mb-5">Platform Pengaduan yang Bisa Dipercaya</h2>
-        <p class="text-gray-500 leading-relaxed mb-6 text-base">Kami hadir sebagai jembatan antara masyarakat dan pemerintah. Dengan teknologi modern dan komitmen terhadap transparansi, setiap suara Anda akan didengar dan ditindaklanjuti.</p>
-        <div class="space-y-4 mb-8">
-          <div class="flex items-start gap-4">
-            <div class="w-10 h-10 bg-cobalt/10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-              <i class="fa-solid fa-check-double text-cobalt"></i>
-            </div>
-            <div>
-              <h4 class="font-bold text-navy-900 text-sm mb-1">Proses Terstandarisasi</h4>
-              <p class="text-gray-500 text-sm">Setiap pengaduan melewati verifikasi, penugasan, dan penyelesaian yang terstruktur.</p>
-            </div>
-          </div>
-          <div class="flex items-start gap-4">
-            <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-              <i class="fa-solid fa-bell text-emerald-600"></i>
-            </div>
-            <div>
-              <h4 class="font-bold text-navy-900 text-sm mb-1">Notifikasi Real-time</h4>
-              <p class="text-gray-500 text-sm">Terima pembaruan status pengaduan melalui SMS atau email.</p>
-            </div>
-          </div>
-        </div>
-       
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- CTA BANNER -->
 <section class="py-16 bg-[#F7F9FF]">
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -562,72 +432,15 @@ function truncateText($text, $limit = 150) {
         <div class="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-5 backdrop-blur">
           <i class="fa-solid fa-pen-to-square text-white text-2xl"></i>
         </div>
-        <h2 class="font-display text-3xl font-bold text-white mb-3">Ada Masalah di Sekitar Anda?</h2>
-        <p class="text-blue-200 mb-8 text-base max-w-lg mx-auto">Jangan diam. Laporkan sekarang dan biarkan kami bekerja untuk mewujudkan lingkungan yang lebih baik bersama.</p>
-        <div class="flex flex-wrap gap-4 justify-center">
-          <?php if ($isLoggedIn): ?>
-            <a href="/create_pengaduan.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm">
-              <i class="fa-solid fa-plus mr-2"></i>Buat Pengaduan Sekarang
-            </a>
-          <?php else: ?>
-            <a href="/login.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm">
-              <i class="fa-solid fa-right-to-bracket mr-2"></i>Login Sekarang
-            </a>
-          <?php endif; ?>
-        </div>
+        <h2 class="font-display text-3xl font-bold text-white mb-3">Ada Masalah Baru?</h2>
+        <p class="text-blue-200 mb-8 text-base max-w-lg mx-auto">Laporkan masalah di lingkungan Anda dan kami akan segera menindaklanjutinya.</p>
+        <a href="/create_pengaduan.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm inline-flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Buat Pengaduan Baru
+        </a>
       </div>
     </div>
   </div>
 </section>
-
-<!-- FOOTER -->
-<footer class="footer-bg text-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-      <div class="sm:col-span-2 lg:col-span-1">
-        <div class="flex items-center gap-2.5 mb-4">
-          <div class="w-10 h-10 rounded-xl bg-cobalt flex items-center justify-center">
-            <i class="fa-solid fa-landmark text-white"></i>
-          </div>
-          <div>
-            <div class="font-display font-bold text-white">Pengaduan</div>
-            <div class="text-cobalt text-xs font-semibold tracking-widest uppercase">Masyarakat</div>
-          </div>
-        </div>
-        <p class="text-blue-200 text-sm leading-relaxed mb-5">Platform resmi pengaduan masyarakat yang transparan, responsif, dan dapat dipercaya.</p>
-        <div class="flex gap-3">
-          <a href="#" class="w-9 h-9 bg-white/10 hover:bg-cobalt rounded-xl flex items-center justify-center transition-colors"><i class="fa-brands fa-facebook-f text-sm"></i></a>
-          <a href="#" class="w-9 h-9 bg-white/10 hover:bg-cobalt rounded-xl flex items-center justify-center transition-colors"><i class="fa-brands fa-twitter text-sm"></i></a>
-          <a href="#" class="w-9 h-9 bg-white/10 hover:bg-cobalt rounded-xl flex items-center justify-center transition-colors"><i class="fa-brands fa-instagram text-sm"></i></a>
-        </div>
-      </div>
-      <div>
-        <h4 class="font-bold text-white mb-4 text-sm uppercase tracking-widest">Layanan</h4>
-        <ul class="space-y-2.5 text-sm text-blue-200">
-          <li><a href="/create_pengaduan.php" class="hover:text-white transition-colors">Buat Pengaduan</a></li>
-          <li><a href="/pengaduanku.php" class="hover:text-white transition-colors">Pengaduan Saya</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4 class="font-bold text-white mb-4 text-sm uppercase tracking-widest">Informasi</h4>
-        <ul class="space-y-2.5 text-sm text-blue-200">
-          <li><a href="/" class="hover:text-white transition-colors">Tentang Platform</a></li>
-          <li><a href="/" class="hover:text-white transition-colors">FAQ</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4 class="font-bold text-white mb-4 text-sm uppercase tracking-widest">Kontak</h4>
-        <ul class="space-y-3 text-sm text-blue-200">
-          <li><i class="fa-solid fa-envelope text-cobalt mr-2"></i> pengaduan@kota.go.id</li>
-          <li><i class="fa-solid fa-phone text-cobalt mr-2"></i> (0341) 340-0000</li>
-        </ul>
-      </div>
-    </div>
-    <div class="border-t border-white/10 pt-6 text-center">
-      <p class="text-blue-300 text-xs">© 2025 Pengaduan Masyarakat. Seluruh hak cipta dilindungi.</p>
-    </div>
-  </div>
-</footer>
 
 <script>
   // Modal Functions
@@ -647,6 +460,15 @@ function truncateText($text, $limit = 150) {
         <img src="uploads/${data.img}" alt="Gambar Pengaduan" class="w-full rounded-xl max-h-64 object-cover">
        </div>` : '';
     
+    const adminNoteHtml = data.admin_note && data.admin_note !== '' ? 
+      `<div class="admin-note rounded-xl p-4 mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fa-solid fa-user-tie text-amber-600"></i>
+          <span class="text-xs font-semibold text-amber-700">Catatan Admin</span>
+        </div>
+        <p class="text-sm text-gray-700">${escapeHtml(data.admin_note)}</p>
+       </div>` : '';
+    
     modalContent.innerHTML = `
       <div class="flex items-center justify-between mb-4">
         <span class="${statusClass} text-xs font-bold px-3 py-1 rounded-full">
@@ -663,18 +485,16 @@ function truncateText($text, $limit = 150) {
       ${imageHtml}
       
       <div class="bg-gray-50 rounded-xl p-4 mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fa-solid fa-align-left text-cobalt text-sm"></i>
+          <span class="text-xs font-semibold text-gray-500">DESKRIPSI LENGKAP</span>
+        </div>
         <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-line">${escapeHtml(data.description)}</p>
       </div>
       
+      ${adminNoteHtml}
+      
       <div class="grid grid-cols-2 gap-3 mb-4">
-        <div class="flex items-center gap-2 text-sm">
-          <i class="fa-regular fa-user text-cobalt w-5"></i>
-          <span class="text-gray-600">${escapeHtml(data.username)}</span>
-        </div>
-        <div class="flex items-center gap-2 text-sm">
-          <i class="fa-regular fa-user text-cobalt w-5"></i>
-          <span class="text-gray-600">${escapeHtml(data.fullname)}</span>
-        </div>
         <div class="flex items-center gap-2 text-sm">
           <i class="fa-regular fa-calendar text-cobalt w-5"></i>
           <span class="text-gray-600">${formatDate(data.date)}</span>
@@ -741,23 +561,6 @@ function truncateText($text, $limit = 150) {
     }
   });
   
-  // Hamburger Toggle
-  const hamburger = document.getElementById('hamburger');
-  const mobileMenu = document.getElementById('mobile-menu');
-  let menuOpen = false;
-  if (hamburger) {
-    hamburger.addEventListener('click', () => {
-      menuOpen = !menuOpen;
-      mobileMenu.classList.toggle('open', menuOpen);
-    });
-  }
-  
-  // Navbar Scroll
-  const navbar = document.getElementById('navbar');
-  window.addEventListener('scroll', () => {
-    if (navbar) navbar.classList.toggle('navbar-scrolled', window.scrollY > 20);
-  });
-  
   // Filter Cards
   function filterCards(status) {
     const cards = document.querySelectorAll('#cards-container [data-status]');
@@ -767,9 +570,11 @@ function truncateText($text, $limit = 150) {
     });
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.classList.remove('bg-cobalt', 'text-white', 'border-cobalt');
+      btn.classList.add('border', 'hover:bg-opacity-90');
     });
     if (event && event.target) {
       event.target.classList.add('bg-cobalt', 'text-white', 'border-cobalt');
+      event.target.classList.remove('border');
     }
   }
   
@@ -786,4 +591,4 @@ function truncateText($text, $limit = 150) {
   revealEls.forEach(el => observer.observe(el));
 </script>
 </body>
-</html> 
+</html>
