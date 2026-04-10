@@ -10,6 +10,6 @@ if (isset($_POST['logout'])) {
     session_destroy();
 
     // redirect ke login / home
-    header("Location: /");
+    header("Location: ../index.php");
     exit;
 }

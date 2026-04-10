@@ -192,7 +192,7 @@ if (isset($_SESSION['login']) && $_SESSION['login'] === true) {
             <p class="text-blue-200 text-xs mt-0.5">Isi formulir di bawah untuk mendaftar</p>
           </div>
           
-          <form id="registrationForm" action="../controller/RegisterController.php" method="POST" class="p-6 space-y-4">
+          <form id="registrationForm" action="controller/RegisterController.php" method="POST" class="p-6 space-y-4">
             <!-- Row 1: Email & Username (2 kolom) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="input-group">

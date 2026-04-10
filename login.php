@@ -164,7 +164,7 @@ if (isset($_SESSION['login']) && $_SESSION['login'] === true) {
             <p class="text-blue-200 text-xs mt-0.5">Gunakan username dan password Anda</p>
           </div>
           
-          <form id="loginForm" action="../controller/LoginController.php" method="POST" class="p-6 space-y-5">
+          <form id="loginForm" action="controller/LoginController.php" method="POST" class="p-6 space-y-5">
             <!-- Username Field -->
             <div class="input-group">
               <label class="block text-navy-900 text-sm font-semibold mb-2 flex items-center gap-2">
@@ -194,7 +194,7 @@ if (isset($_SESSION['login']) && $_SESSION['login'] === true) {
             
             <!-- Forgot Password Link -->
             <div class="flex justify-end">
-              <a href="/forgot-password.php" class="text-xs text-cobalt hover:underline font-medium">Lupa kata sandi?</a>
+              <a href="forgot-password.php" class="text-xs text-cobalt hover:underline font-medium">Lupa kata sandi?</a>
             </div>
             
             <!-- Submit Button -->
@@ -211,7 +211,7 @@ if (isset($_SESSION['login']) && $_SESSION['login'] === true) {
             
             <!-- Register Link -->
             <p class="text-center text-sm text-gray-500">
-              <a href="/register.php" class="text-cobalt font-bold hover:underline text-base">Daftar Sekarang</a>
+              <a href="register.php" class="text-cobalt font-bold hover:underline text-base">Daftar Sekarang</a>
             </p>
           </form>
         </div>

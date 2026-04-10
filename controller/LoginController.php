@@ -27,11 +27,18 @@ if (isset($_POST['login'])) {
             $_SESSION['username'] = $user['username'];
             $_SESSION['fullname'] = $user['fullname'];
             $_SESSION['nik'] = $user['nik'];
+            $_SESSION['role'] = $user['role'];
             $_SESSION['email'] = $user['email'];
             $_SESSION['login'] = true;
             
             // Redirect ke halaman utama
-            header("Location: ../index.php");
+          if ($user['role'] === 'admin') {
+    header("Location: ../dashboard.php"); // halaman admin
+    exit;
+} else {
+    header("Location: ../index.php"); // halaman masyarakat
+    exit;
+}
             exit;
         } else {
             // Password salah

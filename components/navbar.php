@@ -20,13 +20,13 @@
 
       <!-- Desktop Nav -->
       <div class="hidden md:flex items-center gap-1">
-        <a href="/" class="nav-link px-4 py-2 text-sm font-semibold text-navy-900 rounded-lg hover:text-cobalt hover:bg-cobalt/5 transition-all duration-200">
+        <a href="index.php" class="nav-link px-4 py-2 text-sm font-semibold text-navy-900 rounded-lg hover:text-cobalt hover:bg-cobalt/5 transition-all duration-200">
           <i class="fa-solid fa-house mr-1.5 text-cobalt text-xs"></i>Home
         </a>
-        <a href="/#pengaduan" class="nav-link px-4 py-2 text-sm font-semibold text-navy-900 rounded-lg hover:text-cobalt hover:bg-cobalt/5 transition-all duration-200">
+        <a href="index.php#pengaduan" class="nav-link px-4 py-2 text-sm font-semibold text-navy-900 rounded-lg hover:text-cobalt hover:bg-cobalt/5 transition-all duration-200">
           <i class="fa-solid fa-file-lines mr-1.5 text-cobalt text-xs"></i>Pengaduan
         </a>
-        <a href="/#tentang" class="nav-link px-4 py-2 text-sm font-semibold text-navy-900 rounded-lg hover:text-cobalt hover:bg-cobalt/5 transition-all duration-200">
+        <a href="index.php#tentang" class="nav-link px-4 py-2 text-sm font-semibold text-navy-900 rounded-lg hover:text-cobalt hover:bg-cobalt/5 transition-all duration-200">
           <i class="fa-solid fa-circle-info mr-1.5 text-cobalt text-xs"></i>Tentang Kami
         </a>
       </div>
@@ -54,20 +54,17 @@
                   <p class="text-xs text-gray-500">Masuk sebagai</p>
                   <p class="text-sm font-semibold text-navy-900"><?php echo htmlspecialchars($_SESSION['username']); ?></p>
                 </div>
-                <a href="/profile.php" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-cobalt/5 hover:text-cobalt transition-colors">
+                <a href="profile.php" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-cobalt/5 hover:text-cobalt transition-colors">
                   <i class="fa-regular fa-user w-4 text-cobalt"></i>
                   <span>Profil Saya</span>
                 </a>
-                <a href="/pengaduanku.php" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-cobalt/5 hover:text-cobalt transition-colors">
+                <a href="pengaduanku.php" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-cobalt/5 hover:text-cobalt transition-colors">
                   <i class="fa-regular fa-file-lines w-4 text-cobalt"></i>
                   <span>Pengaduanku</span>
                 </a>
-                <a href="/settings.php" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-cobalt/5 hover:text-cobalt transition-colors">
-                  <i class="fa-solid fa-gear w-4 text-cobalt"></i>
-                  <span>Pengaturan</span>
-                </a>
+               
                 <div class="border-t border-gray-100 mt-1 pt-1">
-                  <form action="/controller/LogoutController.php" method="POST" id="logoutForm">
+                  <form action="controller/LogoutController.php" method="POST" id="logoutForm">
                     <button type="submit" name="logout" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
                       <i class="fa-solid fa-right-from-bracket w-4"></i>
                       <span>Keluar</span>
@@ -79,10 +76,10 @@
           </div>
         <?php else: ?>
           <!-- Login & Register Buttons for Guest -->
-          <button onclick="window.location.href = '/login.php'" class="px-5 py-2 text-sm font-semibold text-cobalt border-2 border-cobalt rounded-xl hover:bg-cobalt hover:text-white transition-all duration-200">
+          <button onclick="window.location.href = 'login.php'" class="px-5 py-2 text-sm font-semibold text-cobalt border-2 border-cobalt rounded-xl hover:bg-cobalt hover:text-white transition-all duration-200">
             <i class="fa-solid fa-right-to-bracket mr-1.5"></i>Masuk
           </button>
-          <button onclick="window.location.href = '/register.php'" class="btn-primary px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-cobalt to-navy-700 rounded-xl hover:shadow-lg hover:shadow-cobalt/30 transition-all duration-200">
+          <button onclick="window.location.href = 'register.php'" class="btn-primary px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-cobalt to-navy-700 rounded-xl hover:shadow-lg hover:shadow-cobalt/30 transition-all duration-200">
             <i class="fa-solid fa-user-plus mr-1.5"></i>Daftar
           </button>
         <?php endif; ?>
@@ -124,16 +121,16 @@
                 <p class="text-xs text-gray-500"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Pengguna'); ?></p>
               </div>
             </div>
-            <a href="/profile.php" class="mobile-link flex items-center gap-3 px-4 py-3 text-sm font-semibold text-navy-900 rounded-xl hover:bg-cobalt/5 hover:text-cobalt transition-all">
+            <a href="profile.php" class="mobile-link flex items-center gap-3 px-4 py-3 text-sm font-semibold text-navy-900 rounded-xl hover:bg-cobalt/5 hover:text-cobalt transition-all">
               <i class="fa-regular fa-user w-5 text-cobalt text-center"></i>Profil Saya
             </a>
-            <a href="/my-reports.php" class="mobile-link flex items-center gap-3 px-4 py-3 text-sm font-semibold text-navy-900 rounded-xl hover:bg-cobalt/5 hover:text-cobalt transition-all">
+            <a href="my-reports.php" class="mobile-link flex items-center gap-3 px-4 py-3 text-sm font-semibold text-navy-900 rounded-xl hover:bg-cobalt/5 hover:text-cobalt transition-all">
               <i class="fa-regular fa-file-lines w-5 text-cobalt text-center"></i>Pengaduanku
             </a>
-            <a href="/settings.php" class="mobile-link flex items-center gap-3 px-4 py-3 text-sm font-semibold text-navy-900 rounded-xl hover:bg-cobalt/5 hover:text-cobalt transition-all">
+            <a href="settings.php" class="mobile-link flex items-center gap-3 px-4 py-3 text-sm font-semibold text-navy-900 rounded-xl hover:bg-cobalt/5 hover:text-cobalt transition-all">
               <i class="fa-solid fa-gear w-5 text-cobalt text-center"></i>Pengaturan
             </a>
-            <form action="/controller/LogoutController.php" method="POST" class="mt-2">
+            <form action="controller/LogoutController.php" method="POST" class="mt-2">
               <button type="submit" name="logout" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-red-600 rounded-xl hover:bg-red-50 transition-all">
                 <i class="fa-solid fa-right-from-bracket w-5 text-center"></i>Keluar
               </button>
@@ -142,10 +139,10 @@
         <?php else: ?>
           <!-- Mobile Auth Buttons for Guest -->
           <div class="pt-3 border-t border-blue-50 flex gap-3 px-4">
-            <button onclick="window.location.href = '/login.php'" class="flex-1 py-2.5 text-sm font-semibold text-cobalt border-2 border-cobalt rounded-xl hover:bg-cobalt hover:text-white transition-all">
+            <button onclick="window.location.href = 'login.php'" class="flex-1 py-2.5 text-sm font-semibold text-cobalt border-2 border-cobalt rounded-xl hover:bg-cobalt hover:text-white transition-all">
               <i class="fa-solid fa-right-to-bracket mr-1.5"></i>Masuk
             </button>
-            <button onclick="window.location.href = '/register.php'" class="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-cobalt to-navy-700 rounded-xl">
+            <button onclick="window.location.href = 'register.php'" class="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-cobalt to-navy-700 rounded-xl">
               <i class="fa-solid fa-user-plus mr-1.5"></i>Daftar
             </button>
           </div>

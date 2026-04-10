@@ -44,7 +44,8 @@ $description_safe = mysqli_real_escape_string($conn, $description);
 mysqli_query($conn, "INSERT INTO activity (`table_name`, description) 
                      VALUES ('$table', '$description_safe')");
 
-        echo "<script> window.location.href ='/' </script>";
+        header("Location: ../index.php");
+    exit;
     } else {
         echo "<script>alert('Register gagal!'); </script>";
     }

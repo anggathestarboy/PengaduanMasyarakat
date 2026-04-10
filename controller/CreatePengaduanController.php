@@ -65,7 +65,8 @@ $table = "pengaduan";
 mysqli_stmt_bind_param($stmt, "ss", $table, $desc);
 mysqli_stmt_execute($stmt);
 
-        echo "<script>alert('Pengaduan berhasil dikirim'); window.location='/';</script>";
+       header("Location: ../index.php");
+    exit;
     } else {
         echo "<script>alert('Gagal menyimpan pengaduan'); window.history.back();</script>";
     }

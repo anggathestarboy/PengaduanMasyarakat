@@ -280,13 +280,13 @@ function truncateText($text, $limit = 150) {
         </p>
         <div class="flex flex-wrap gap-4">
           <?php if ($isLoggedIn): ?>
-            <a href="/create_pengaduan.php" class="btn-primary group inline-flex items-center gap-2.5 bg-white text-cobalt font-bold px-7 py-3.5 rounded-2xl hover:shadow-2xl hover:shadow-white/20 transition-all duration-300 text-sm">
+            <a href="create_pengaduan.php" class="btn-primary group inline-flex items-center gap-2.5 bg-white text-cobalt font-bold px-7 py-3.5 rounded-2xl hover:shadow-2xl hover:shadow-white/20 transition-all duration-300 text-sm">
               <i class="fa-solid fa-pen-to-square"></i>
               Buat Pengaduan
               <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
             </a>
           <?php else: ?>
-            <a href="/login.php" class="btn-primary group inline-flex items-center gap-2.5 bg-white text-cobalt font-bold px-7 py-3.5 rounded-2xl hover:shadow-2xl hover:shadow-white/20 transition-all duration-300 text-sm">
+            <a href="login.php" class="btn-primary group inline-flex items-center gap-2.5 bg-white text-cobalt font-bold px-7 py-3.5 rounded-2xl hover:shadow-2xl hover:shadow-white/20 transition-all duration-300 text-sm">
               <i class="fa-solid fa-right-to-bracket"></i>
               Login Sekarang
               <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
@@ -461,9 +461,9 @@ function truncateText($text, $limit = 150) {
           <i class="fa-solid fa-inbox text-6xl text-gray-300 mb-4"></i>
           <p class="text-gray-500">Belum ada pengaduan. Jadilah yang pertama melaporkan!</p>
           <?php if ($isLoggedIn): ?>
-            <a href="/buat-pengaduan.php" class="inline-block mt-4 text-cobalt font-semibold hover:underline">Buat Pengaduan →</a>
+            <a href="create-pengaduan.php" class="inline-block mt-4 text-cobalt font-semibold hover:underline">Buat Pengaduan →</a>
           <?php else: ?>
-            <a href="/login.php" class="inline-block mt-4 text-cobalt font-semibold hover:underline">Login untuk membuat pengaduan →</a>
+            <a href="login.php" class="inline-block mt-4 text-cobalt font-semibold hover:underline">Login untuk membuat pengaduan →</a>
           <?php endif; ?>
         </div>
       <?php endif; ?>
@@ -566,11 +566,11 @@ function truncateText($text, $limit = 150) {
         <p class="text-blue-200 mb-8 text-base max-w-lg mx-auto">Jangan diam. Laporkan sekarang dan biarkan kami bekerja untuk mewujudkan lingkungan yang lebih baik bersama.</p>
         <div class="flex flex-wrap gap-4 justify-center">
           <?php if ($isLoggedIn): ?>
-            <a href="/create_pengaduan.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm">
+            <a href="create_pengaduan.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm">
               <i class="fa-solid fa-plus mr-2"></i>Buat Pengaduan Sekarang
             </a>
           <?php else: ?>
-            <a href="/login.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm">
+            <a href="login.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm">
               <i class="fa-solid fa-right-to-bracket mr-2"></i>Login Sekarang
             </a>
           <?php endif; ?>
@@ -604,15 +604,15 @@ function truncateText($text, $limit = 150) {
       <div>
         <h4 class="font-bold text-white mb-4 text-sm uppercase tracking-widest">Layanan</h4>
         <ul class="space-y-2.5 text-sm text-blue-200">
-          <li><a href="/create_pengaduan.php" class="hover:text-white transition-colors">Buat Pengaduan</a></li>
-          <li><a href="/pengaduanku.php" class="hover:text-white transition-colors">Pengaduan Saya</a></li>
+          <li><a href="create_pengaduan.php" class="hover:text-white transition-colors">Buat Pengaduan</a></li>
+          <li><a href="pengaduanku.php" class="hover:text-white transition-colors">Pengaduan Saya</a></li>
         </ul>
       </div>
       <div>
         <h4 class="font-bold text-white mb-4 text-sm uppercase tracking-widest">Informasi</h4>
         <ul class="space-y-2.5 text-sm text-blue-200">
-          <li><a href="/" class="hover:text-white transition-colors">Tentang Platform</a></li>
-          <li><a href="/" class="hover:text-white transition-colors">FAQ</a></li>
+          <li><a href="index.php" class="hover:text-white transition-colors">Tentang Platform</a></li>
+          <li><a href="index.php" class="hover:text-white transition-colors">FAQ</a></li>
         </ul>
       </div>
       <div>

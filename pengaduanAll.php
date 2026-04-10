@@ -1,3 +1,5 @@
+
+
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -9,15 +11,17 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// cek role
+if ($_SESSION['role'] != 'admin') {
+    header("Location: index.php");
+    exit;
+}
+
 // Koneksi database
 require_once "config/db.php";
 
 // Ambil data statistik dari database
-$total_pengaduan = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan"))['total'];
-$total_selesai = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'selesai'"))['total'];
-$total_proses = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'diproses'"))['total'];
-$total_baru = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'menunggu'"))['total'];
-$total_users = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM users"))['total'];
+
 
 // Ambil data admin dari session
 $admin_name = $_SESSION['fullname'] ?? 'Administrator';
@@ -27,7 +31,6 @@ $admin_role = $_SESSION['role'] ?? 'Super Admin';
 // Hitung persentase penyelesaian
 $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_pengaduan) * 100) : 0;
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -207,7 +210,7 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
     /* Count-up animation */
     .counter { display:inline-block; }
 
-    /* ── Sparkline ── */
+    /* Sparkline */
     .sparkline-bar {
       width:5px;
       border-radius:3px;
@@ -216,14 +219,14 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
     }
     .sparkline-bar.active { background:rgba(255,255,255,0.85); }
 
-    /* ── Page fade-in ── */
+    /* Page fade-in */
     @keyframes fadeUp {
       from { opacity:0; transform:translateY(20px); }
       to   { opacity:1; transform:translateY(0); }
     }
     .fade-up { animation: fadeUp 0.5s ease both; }
 
-    /* ── Avatar ring ── */
+    /* Avatar ring */
     .avatar-ring {
       width:38px; height:38px; border-radius:50%;
       background: linear-gradient(135deg, #1D5CFF, #8B5CF6);
@@ -232,7 +235,7 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
       box-shadow:0 0 0 3px #C5D3FF;
     }
 
-    /* ── Notification dot ── */
+    /* Notification dot */
     .notif-dot {
       width:8px; height:8px;
       border-radius:50%;
@@ -244,7 +247,7 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
     /* Nav label */
     .nav-label { white-space:nowrap; }
 
-    /* ── Mobile responsive ── */
+    /* Mobile responsive */
     @media (max-width:768px) {
       #sidebar { transform: translateX(-100%); }
       #sidebar.open { transform: translateX(0); }
@@ -258,6 +261,39 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
     #sidebar-nav::-webkit-scrollbar-thumb { background:rgba(29,92,255,0.4); border-radius:4px; }
     ::-webkit-scrollbar { width:6px; }
     ::-webkit-scrollbar-thumb { background:#C5D3FF; border-radius:6px; }
+    
+    /* modal detail styles */
+    .modal-detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-detail-container {
+      background: white;
+      border-radius: 24px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      animation: modalSlideUp 0.25s ease-out;
+    }
+    @keyframes modalSlideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .detail-image {
+      max-height: 280px;
+      object-fit: cover;
+      width: 100%;
+      border-radius: 20px;
+    }
   </style>
 </head>
 <body>
@@ -265,13 +301,10 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
 <!-- ════════════════════════ SIDEBAR ════════════════════════ -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-
-
 <!-- ════════════════════════ TOPBAR ════════════════════════ -->
 <?php include "components/sidebar.php" ?>
 <?php include "components/navbarAdmin.php" ?>
 
-<!-- ════════════════════════ MAIN CONTENT ════════════════════════ -->
 <!-- ════════════════════════ MAIN CONTENT ════════════════════════ -->
 <main id="main">
   <div class="p-6 lg:p-8 max-w-7xl">
@@ -283,13 +316,8 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
         <p class="text-slate-500 text-sm mt-1">Kelola dan pantau seluruh pengaduan masyarakat</p>
       </div>
       <div class="flex gap-2">
-        <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input type="text" placeholder="Cari pengaduan..." class="pl-9 pr-4 py-2 rounded-xl border border-slate-border bg-white text-sm w-64 focus:outline-none focus:border-azure focus:ring-1 focus:ring-azure">
-        </div>
-        <button class="bg-azure hover:bg-azure-soft text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
-          <i class="fa-solid fa-filter"></i> Filter
-        </button>
+       
+      
       </div>
     </div>
 
@@ -317,19 +345,35 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
           $statusColor = match($status) {
             'selesai' => 'bg-emerald-100 text-emerald-700',
             'diproses' => 'bg-amber-100 text-amber-700',
+            'ditolak' => 'bg-red-600 text-white',
             default => 'bg-blue-100 text-blue-700'
           };
           $statusIcon = match($status) {
             'selesai' => 'fa-circle-check',
             'diproses' => 'fa-hourglass-half',
+            'ditolak' => 'fa-solid fa-xmark',
             default => 'fa-clock'
           };
           $statusText = match($status) {
             'selesai' => 'Selesai',
             'diproses' => 'Diproses',
+            'ditolak' => 'Ditolak',
             default => 'Menunggu'
           };
           $imagePath = !empty($row['img']) && file_exists('uploads/' . $row['img']) ? 'uploads/' . $row['img'] : null;
+          
+          // Escape untuk keperluan modal detail
+          $detail_id = $row['id'];
+          $detail_title = htmlspecialchars($row['title']);
+          $detail_desc = htmlspecialchars($row['description']);
+          $detail_username = htmlspecialchars($row['username']);
+          $detail_fullname = htmlspecialchars($row['fullname']);
+          $detail_date = date('d M Y, H:i', strtotime($row['date']));
+          $detail_location = htmlspecialchars($row['location'] ?? '');
+          $detail_status = $statusText;
+          $detail_status_badge = $statusColor;
+          $detail_image = $imagePath ? 'uploads/' . urlencode($row['img']) : null;
+          $detail_admin_note = htmlspecialchars($row['admin_note'] ?? '');
       ?>
       <!-- Card -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-border overflow-hidden hover:shadow-md transition-shadow" data-status="<?= $status ?>">
@@ -374,17 +418,40 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
           <?php endif; ?>
           
           <!-- Action Buttons -->
-          <div class="flex gap-2 mt-4 pt-4 border-t border-slate-border">
-            <button class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-              <i class="fa-solid fa-gear"></i> Proses
-            </button>
-            <button class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-              <i class="fa-solid fa-ban"></i> Tolak
-            </button>
-            <button class="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-medium py-2 rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
-              <i class="fa-solid fa-check-circle"></i> Selesai
-            </button>
-          </div>
+<div class="flex gap-2 mt-4 pt-4 border-t border-slate-border">
+
+<?php if ($status === 'menunggu'): ?>
+
+  <!-- Proses -->
+  <button onclick="openModal(<?= $row['id'] ?>, 'diproses')"
+    class="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium py-2 rounded-xl text-sm flex items-center justify-center gap-2">
+    <i class="fa-solid fa-gear"></i> Proses
+  </button>
+
+  <!-- Tolak -->
+  <button onclick="openModal(<?= $row['id'] ?>, 'ditolak')"
+    class="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2 rounded-xl text-sm flex items-center justify-center gap-2">
+    <i class="fa-solid fa-ban"></i> Tolak
+  </button>
+
+<?php elseif ($status === 'diproses'): ?>
+
+  <!-- Selesai -->
+  <button onclick="openModal(<?= $row['id'] ?>, 'selesai')"
+    class="w-full bg-green-600 hover:bg-green-600 text-white font-medium py-2 rounded-xl text-sm flex items-center justify-center gap-2">
+ Tandai Selesai
+  </button>
+
+<?php else: ?>
+
+  <!-- Sudah selesai / ditolak -->
+  <div class="w-full text-center text-xs text-slate-400 py-2">
+    Tidak ada aksi tersedia
+  </div>
+
+<?php endif; ?>
+
+</div>
           
           <!-- Admin Note (if any) -->
           <?php if (!empty($row['admin_note'])): ?>
@@ -394,10 +461,25 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
           <?php endif; ?>
         </div>
         
-        <!-- ID Footer -->
+        <!-- ID Footer with Detail Button (fixed: opens modal popup) -->
         <div class="px-5 py-3 bg-slate-panel border-t border-slate-border flex justify-between items-center">
           <span class="text-xs text-slate-400"><i class="fa-solid fa-hashtag mr-1"></i>ADU-<?= str_pad($row['id'], 4, '0', STR_PAD_LEFT) ?></span>
-          <button class="text-xs text-azure hover:underline">Lihat Detail</button>
+          <button onclick='openDetailModal({
+            id: <?= $detail_id ?>,
+            title: <?= json_encode($detail_title) ?>,
+            description: <?= json_encode($detail_desc) ?>,
+            username: <?= json_encode($detail_username) ?>,
+            fullname: <?= json_encode($detail_fullname) ?>,
+            date: <?= json_encode($detail_date) ?>,
+            location: <?= json_encode($detail_location) ?>,
+            status: <?= json_encode($detail_status) ?>,
+            statusBadge: <?= json_encode($detail_status_badge) ?>,
+            image: <?= json_encode($detail_image) ?>,
+            adminNote: <?= json_encode($detail_admin_note) ?>
+          })' 
+          class="text-xs text-azure hover:underline font-medium cursor-pointer">
+            <i class="fa-regular fa-eye mr-1"></i> Lihat Detail
+          </button>
         </div>
       </div>
       <?php 
@@ -414,9 +496,65 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
       <?php endif; ?>
     </div>
     
-  
    
+  
 </main>
+
+<!-- Modal untuk update status (catatan admin) - tetap seperti semula -->
+<div id="modal" class="fixed inset-0 z-50 hidden">
+  
+  <!-- Overlay -->
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal()"></div>
+
+  <!-- Modal Box -->
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl transform scale-95 opacity-0 transition-all duration-200" id="modalBox">
+      
+      <h2 class="text-lg font-bold mb-3">Catatan Admin (opsional)</h2>
+
+      <form method="POST" action="controller/update_status.php">
+        <input type="hidden" name="id" id="modal_id">
+        <input type="hidden" name="status" id="modal_status">
+
+        <textarea name="admin_note" 
+          class="w-full border border-slate-300 rounded-lg p-3 text-sm mb-4 focus:ring-2 focus:ring-azure focus:outline-none"
+          placeholder="Masukkan pesan untuk user..."></textarea>
+
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeModal()"
+            class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">
+            Batal
+          </button>
+
+          <button type="submit"
+            class="px-4 py-2 bg-azure hover:bg-azure-soft text-white rounded-lg text-sm">
+            Simpan
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<!-- NEW MODAL POPUP FOR DETAIL PENGADUAN (FULL DETAIL) -->
+<div id="detailModal" class="fixed inset-0 z-[60] hidden">
+  <div class="modal-detail-overlay" onclick="closeDetailModal()">
+    <div class="modal-detail-container" onclick="event.stopPropagation()">
+      <div class="relative">
+        <!-- Tombol close -->
+        <button onclick="closeDetailModal()" class="absolute top-4 right-4 bg-white/80 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-md z-10 text-gray-600 hover:text-gray-900 transition">
+          <i class="fa-solid fa-times"></i>
+        </button>
+        
+        <!-- Konten dinamis diisi via JS -->
+        <div id="detailContent" class="p-5 md:p-6">
+          <!-- loader atau konten akan diisi -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   // Tab filtering functionality (static for now)
@@ -448,8 +586,173 @@ $persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_peng
       });
     });
   });
-</script>
 
+
+function openModal(id, status) {
+  const modal = document.getElementById('modal');
+  const box = document.getElementById('modalBox');
+
+  modal.classList.remove('hidden');
+
+  // delay biar animasi jalan
+  setTimeout(() => {
+    box.classList.remove('scale-95', 'opacity-0');
+    box.classList.add('scale-100', 'opacity-100');
+  }, 10);
+
+  document.getElementById('modal_id').value = id;
+  document.getElementById('modal_status').value = status;
+}
+
+function closeModal() {
+  const modal = document.getElementById('modal');
+  const box = document.getElementById('modalBox');
+
+  box.classList.remove('scale-100', 'opacity-100');
+  box.classList.add('scale-95', 'opacity-0');
+
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 200);
+}
+
+// ===================== DETAIL MODAL POPUP =====================
+function openDetailModal(data) {
+  const modal = document.getElementById('detailModal');
+  const contentDiv = document.getElementById('detailContent');
+  
+  // Build HTML for detail
+  let imageHtml = '';
+  if (data.image) {
+    imageHtml = `
+      <div class="mb-5 rounded-xl overflow-hidden bg-gray-100">
+        <img src="${escapeHtml(data.image)}" alt="Gambar pengaduan" class="detail-image w-full max-h-72 object-cover">
+      </div>
+    `;
+  } else {
+    imageHtml = `
+      <div class="mb-5 rounded-xl bg-slate-panel flex items-center justify-center py-12 border border-dashed border-slate-border">
+        <i class="fa-regular fa-image text-4xl text-slate-300"></i>
+        <span class="ml-2 text-slate-400 text-sm">Tidak ada gambar</span>
+      </div>
+    `;
+  }
+  
+  const statusBadgeClass = data.statusBadge || 'bg-blue-100 text-blue-700';
+  const adminNoteHtml = data.adminNote && data.adminNote.trim() !== '' 
+    ? `
+      <div class="mt-5 p-4 bg-amber-50 rounded-xl border-l-4 border-amber-400">
+        <div class="flex items-start gap-2">
+          <i class="fa-solid fa-note-sticky text-amber-600 mt-0.5"></i>
+          <div>
+            <p class="text-xs font-semibold text-amber-800 uppercase tracking-wide">Catatan Admin</p>
+            <p class="text-sm text-amber-800 mt-1">${escapeHtml(data.adminNote)}</p>
+          </div>
+        </div>
+      </div>
+    `
+    : '';
+  
+  const locationHtml = data.location && data.location.trim() !== '' 
+    ? `
+      <div class="flex items-start gap-2 text-sm text-slate-600 mt-2">
+        <i class="fa-solid fa-location-dot text-azure mt-0.5"></i>
+        <span>${escapeHtml(data.location)}</span>
+      </div>
+    `
+    : '';
+  
+  const fullHtml = `
+    <div class="space-y-4">
+      <!-- Header status badge -->
+      <div class="flex justify-between items-start flex-wrap gap-2">
+        <span class="${statusBadgeClass} text-xs font-semibold px-3 py-1.5 rounded-full inline-flex items-center gap-1">
+          <i class="fa-regular ${getStatusIconByText(data.status)}"></i> ${escapeHtml(data.status)}
+        </span>
+        <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+          <i class="fa-regular fa-calendar-alt mr-1"></i> ${escapeHtml(data.date)}
+        </span>
+      </div>
+      
+      <!-- Title -->
+      <h2 class="font-display text-2xl font-bold text-ink-900 leading-tight">${escapeHtml(data.title)}</h2>
+      
+      <!-- User info -->
+      <div class="flex items-center gap-3 py-2 border-y border-slate-border">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-azure to-purple-600 flex items-center justify-center text-white font-bold shadow-sm">
+          ${escapeHtml((data.username.charAt(0) || 'U').toUpperCase())}
+        </div>
+        <div>
+          <p class="font-semibold text-ink-900">${escapeHtml(data.fullname || data.username)}</p>
+          <p class="text-xs text-slate-400">@${escapeHtml(data.username)}</p>
+        </div>
+      </div>
+      
+      ${imageHtml}
+      
+      <!-- Deskripsi -->
+      <div>
+        <h3 class="font-semibold text-ink-800 text-sm uppercase tracking-wide mb-2">Deskripsi Pengaduan</h3>
+        <div class="bg-slate-panel rounded-xl p-4 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+          ${escapeHtml(data.description) || '<span class="text-slate-400 italic">Tidak ada deskripsi</span>'}
+        </div>
+      </div>
+      
+      ${locationHtml ? `<div>${locationHtml}</div>` : ''}
+      
+      ${adminNoteHtml}
+      
+      <!-- ID Reference -->
+      <div class="pt-3 text-right border-t border-slate-border">
+        <span class="text-xs text-slate-400 font-mono"><i class="fa-regular fa-hashtag"></i> ID Pengaduan: ADU-${String(data.id).padStart(4, '0')}</span>
+      </div>
+    </div>
+  `;
+  
+  contentDiv.innerHTML = fullHtml;
+  modal.classList.remove('hidden');
+  // prevent body scroll
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetailModal() {
+  const modal = document.getElementById('detailModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+function getStatusIconByText(statusText) {
+  switch(statusText.toLowerCase()) {
+    case 'selesai': return 'fa-circle-check';
+    case 'diproses': return 'fa-hourglass-half';
+    case 'ditolak': return 'fa-solid fa-xmark';
+    default: return 'fa-clock';
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Fungsi untuk close sidebar (jika ada)
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('show');
+}
+
+// Agar tombol detail yang dibuat secara dinamis tetap berfungsi (sudah terpasang onclick pada setiap tombol)
+// Tidak perlu tambahan lain karena button sudah memiliki event handler langsung
+</script>
 
 </body>
 </html>

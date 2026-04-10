@@ -321,7 +321,7 @@ function truncateText($text, $limit = 150) {
     <div id="cards-container" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <?php if (mysqli_num_rows($result) > 0): ?>
         <?php while ($pengaduan = mysqli_fetch_assoc($result)): 
-          $status = strtolower($pengaduan['status'] ?? 'baru');
+          $status = strtolower($pengaduan['status'] ?? 'menunggu');
           $progressWidth = getProgressWidth($status);
           $gradientColor = getGradientColor($status);
           $initials = getInitials($_SESSION['fullname'] ?? 'User');
@@ -357,6 +357,7 @@ function truncateText($text, $limit = 150) {
               
               <h3 class="font-display font-bold text-navy-900 text-lg mb-2 line-clamp-2"><?= htmlspecialchars($pengaduan['title'] ?? 'Judul Pengaduan') ?></h3>
               <p class="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-3"><?= htmlspecialchars($shortDescription) ?></p>
+              <p class="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-3"><strong>Balasan Admin:</strong>  <?= htmlspecialchars($pengaduan['admin_note']) ?></p>
               
               <?php if (!empty($pengaduan['location'])): ?>
                 <div class="flex items-center gap-2 text-xs text-gray-400 mb-4">
@@ -382,12 +383,30 @@ function truncateText($text, $limit = 150) {
               </div>
             </div>
             
-            <div class="px-6 py-3 border-t border-blue-50 bg-blue-50/40 flex justify-between items-center">
-              <span class="text-xs text-gray-400"><i class="fa-solid fa-hashtag mr-1"></i>ADU-<?= str_pad($pengaduan['id'], 4, '0', STR_PAD_LEFT) ?></span>
-              <button onclick="openModal(<?= htmlspecialchars(json_encode($pengaduan)) ?>)" class="text-xs font-bold text-cobalt hover:underline">
-                <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>Detail
-              </button>
-            </div>
+          <div class="px-6 py-3 border-t border-blue-50 bg-blue-50/40 flex justify-between items-center">
+  <span class="text-xs text-gray-400">
+    <i class="fa-solid fa-hashtag mr-1"></i>
+    ADU-<?= str_pad($pengaduan['id'], 4, '0', STR_PAD_LEFT) ?>
+  </span>
+
+  <div class="flex gap-2 items-center">
+    <button onclick="openModal(<?= htmlspecialchars(json_encode($pengaduan)) ?>)" 
+      class="text-xs font-bold text-cobalt hover:underline">
+      <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>Detail
+    </button>
+
+    <?php if ($status === 'menunggu'): ?>
+      <form action="delete_pengaduan.php" method="POST" 
+        onsubmit="return confirm('Yakin ingin membatalkan pengaduan ini?')">
+        <input type="hidden" name="id" value="<?= $pengaduan['id'] ?>">
+        <button type="submit" 
+          class="text-xs font-bold text-red-600 hover:underline">
+          <i class="fa-solid fa-trash mr-1"></i>Batalkan
+        </button>
+      </form>
+    <?php endif; ?>
+  </div>
+</div>
           </div>
         <?php endwhile; ?>
       <?php else: ?>
@@ -398,7 +417,7 @@ function truncateText($text, $limit = 150) {
             </div>
             <h3 class="font-display text-xl font-bold text-navy-900 mb-2">Belum Ada Pengaduan</h3>
             <p class="text-gray-500 text-sm mb-6">Anda belum membuat pengaduan apapun. Mulai laporkan masalah di sekitar Anda sekarang!</p>
-            <a href="/create_pengaduan.php" class="inline-flex items-center gap-2 bg-gradient-to-r from-cobalt to-navy-700 text-white font-semibold px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 text-sm">
+            <a href="create_pengaduan.php" class="inline-flex items-center gap-2 bg-gradient-to-r from-cobalt to-navy-700 text-white font-semibold px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300 text-sm">
               <i class="fa-solid fa-pen-to-square"></i> Buat Pengaduan Sekarang
             </a>
           </div>
@@ -434,7 +453,7 @@ function truncateText($text, $limit = 150) {
         </div>
         <h2 class="font-display text-3xl font-bold text-white mb-3">Ada Masalah Baru?</h2>
         <p class="text-blue-200 mb-8 text-base max-w-lg mx-auto">Laporkan masalah di lingkungan Anda dan kami akan segera menindaklanjutinya.</p>
-        <a href="/create_pengaduan.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm inline-flex items-center gap-2">
+        <a href="create_pengaduan.php" class="btn-primary bg-white text-navy-900 font-bold px-8 py-3.5 rounded-2xl hover:shadow-xl hover:shadow-white/20 transition-all duration-300 text-sm inline-flex items-center gap-2">
           <i class="fa-solid fa-plus"></i> Buat Pengaduan Baru
         </a>
       </div>

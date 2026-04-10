@@ -1,12 +1,38 @@
 <?php
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Cek apakah user sudah login dan memiliki role admin
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
 
+// cek role
+if ($_SESSION['role'] != 'admin') {
+    header("Location: index.php");
+    exit;
+}
+
+// Koneksi database
+require_once "config/db.php";
+
+// Ambil data statistik dari database
+$total_pengaduan = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan"))['total'];
+$total_selesai = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'selesai'"))['total'];
+$total_proses = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'diproses'"))['total'];
+$total_baru = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM pengaduan WHERE status = 'menunggu'"))['total'];
+$total_users = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as total FROM users"))['total'];
+
+// Ambil data admin dari session
+$admin_name = $_SESSION['fullname'] ?? 'Administrator';
+$admin_initial = strtoupper(substr($admin_name, 0, 1));
+$admin_role = $_SESSION['role'] ?? 'Super Admin';
+
+// Hitung persentase penyelesaian
+$persentase_selesai = $total_pengaduan > 0 ? round(($total_selesai / $total_pengaduan) * 100) : 0;
 ?>
-
 
 <!DOCTYPE html>
 <html lang="id">
@@ -221,7 +247,7 @@ if (session_status() === PHP_SESSION_NONE) {
       position:absolute; top:6px; right:6px;
     }
 
-    /* Tooltip on sidebar icon (collapsed) */
+    /* Nav label */
     .nav-label { white-space:nowrap; }
 
     /* ── Mobile responsive ── */
@@ -238,11 +264,6 @@ if (session_status() === PHP_SESSION_NONE) {
     #sidebar-nav::-webkit-scrollbar-thumb { background:rgba(29,92,255,0.4); border-radius:4px; }
     ::-webkit-scrollbar { width:6px; }
     ::-webkit-scrollbar-thumb { background:#C5D3FF; border-radius:6px; }
-
-    /* Progress ring */
-    .ring-track { fill:none; stroke:rgba(255,255,255,0.18); stroke-width:5; }
-    .ring-fill  { fill:none; stroke:rgba(255,255,255,0.85); stroke-width:5;
-                  stroke-linecap:round; transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1); }
   </style>
 </head>
 <body>
@@ -250,87 +271,11 @@ if (session_status() === PHP_SESSION_NONE) {
 <!-- ════════════════════════ SIDEBAR ════════════════════════ -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-<aside id="sidebar">
-  <!-- Brand -->
-  <div class="relative z-10 px-5 pt-6 pb-5 border-b border-white/10">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-           style="background:linear-gradient(135deg,#1D5CFF,#1140C8);box-shadow:0 4px 14px rgba(29,92,255,0.5)">
-        <i class="fa-solid fa-landmark text-white text-sm"></i>
-      </div>
-      <div>
-        <div class="font-display font-bold text-white text-sm leading-tight">Pengaduan</div>
-        <div class="text-azure-dim text-[10px] font-semibold tracking-widest uppercase">Masyarakat</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Navigation -->
-  <nav id="sidebar-nav" class="relative z-10 flex-1 px-3 pt-5 pb-4 space-y-1 overflow-y-auto">
-
-    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30 px-3 mb-3">Menu Utama</p>
-
-    <a href="#" class="nav-item active">
-      <span class="icon-wrap"><i class="fa-solid fa-gauge-high"></i></span>
-      <span class="nav-label">Dashboard</span>
-    </a>
-    <a href="#" class="nav-item">
-      <span class="icon-wrap"><i class="fa-solid fa-file-lines"></i></span>
-      <span class="nav-label">Pengaduan</span>
-      <span class="ml-auto bg-azure/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">48</span>
-    </a>
-    <a href="#" class="nav-item">
-      <span class="icon-wrap"><i class="fa-solid fa-chart-bar"></i></span>
-      <span class="nav-label">Aktivitas</span>
-    </a>
-    <a href="#" class="nav-item">
-      <span class="icon-wrap"><i class="fa-solid fa-users"></i></span>
-      <span class="nav-label">Pengguna</span>
-    </a>
-
-   
-
-   
-
-
-</aside>
 
 
 <!-- ════════════════════════ TOPBAR ════════════════════════ -->
-<header id="topbar">
-  <!-- Hamburger -->
-  <button id="hamburger" class="md:hidden flex flex-col justify-center gap-1.5 w-9 h-9 rounded-lg hover:bg-azure-pale transition-colors mr-4" onclick="toggleSidebar()">
-    <span class="block h-0.5 w-5 bg-ink-800 rounded"></span>
-    <span class="block h-0.5 w-5 bg-ink-800 rounded"></span>
-    <span class="block h-0.5 w-4 bg-ink-800 rounded"></span>
-  </button>
-
-  <!-- Page Title -->
-  <div class="flex-1">
-    <h1 class="font-display font-bold text-ink-900 text-lg leading-none">Dashboard</h1>
-    <p class="text-xs text-slate-400 font-medium mt-0.5">
-      <i class="fa-regular fa-calendar mr-1 text-azure"></i>
-      <span id="current-date"></span>
-    </p>
-  </div>
-
-  <!-- Right Actions -->
-  <div class="flex items-center gap-3">
-
-
-   
-
-    <!-- Avatar -->
-    <div class="flex items-center gap-2.5 pl-3 border-l border-slate-border cursor-pointer group">
-      <div class="avatar-ring text-xs">SA</div>
-      <div class="hidden sm:block">
-        <div class="text-[10px] text-slate-400">Administrator</div>
-      </div>
-      <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1 group-hover:text-azure transition-colors"></i>
-    </div>
-  </div>
-</header>
-
+<?php include "components/sidebar.php" ?>
+<?php include "components/navbarAdmin.php" ?>
 
 <!-- ════════════════════════ MAIN CONTENT ════════════════════════ -->
 <main id="main">
@@ -346,13 +291,14 @@ if (session_status() === PHP_SESSION_NONE) {
       <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <p class="text-azure-dim text-xs font-semibold tracking-widest uppercase mb-1">Selamat Datang Kembali 👋</p>
-          <h2 class="font-display text-white text-xl font-bold">Super Admin</h2>
+          <h2 class="font-display text-white text-xl font-bold"><?= htmlspecialchars($admin_name) ?></h2>
           <p class="text-blue-300 text-sm mt-1 font-light">Berikut ringkasan aktivitas pengaduan hari ini.</p>
         </div>
-       
+        <div class="bg-white/10 rounded-full px-4 py-2 backdrop-blur">
+          <span class="text-white text-sm font-medium">Tingkat Penyelesaian: <?= $persentase_selesai ?>%</span>
+        </div>
       </div>
     </div>
-
 
     <!-- ── STAT CARDS ── -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
@@ -364,21 +310,20 @@ if (session_status() === PHP_SESSION_NONE) {
           <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:rgba(255,255,255,0.18)">
             <i class="fa-solid fa-inbox text-white text-lg"></i>
           </div>
-          
         </div>
         <div class="font-display font-bold text-4xl text-white mb-1 leading-none">
-          <span class="counter" data-target="4821" data-duration="1800">0</span>
+          <span class="counter" data-target="<?= $total_pengaduan ?>" data-duration="1800">0</span>
         </div>
         <div class="text-white/70 text-sm font-medium mt-1">Total Pengaduan</div>
-        <!-- Mini sparkline -->
         <div class="flex items-end gap-1 mt-4 h-8">
-          <div class="sparkline-bar" style="height:40%"></div>
-          <div class="sparkline-bar" style="height:60%"></div>
-          <div class="sparkline-bar" style="height:45%"></div>
-          <div class="sparkline-bar" style="height:75%"></div>
-          <div class="sparkline-bar" style="height:55%"></div>
-          <div class="sparkline-bar" style="height:80%"></div>
-          <div class="sparkline-bar active" style="height:100%"></div>
+          <?php
+          // Generate random heights for sparkline based on actual data
+          $heights = [40, 60, 45, 75, 55, 80, 100];
+          foreach ($heights as $i => $h) {
+            $activeClass = $i === count($heights)-1 ? 'active' : '';
+            echo "<div class='sparkline-bar $activeClass' style='height:{$h}%'></div>";
+          }
+          ?>
         </div>
       </div>
 
@@ -389,21 +334,15 @@ if (session_status() === PHP_SESSION_NONE) {
           <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:rgba(255,255,255,0.18)">
             <i class="fa-solid fa-hourglass-half text-white text-lg"></i>
           </div>
-         
         </div>
         <div class="font-display font-bold text-4xl text-white mb-1 leading-none">
-          <span class="counter" data-target="1204" data-duration="1600">0</span>
+          <span class="counter" data-target="<?= $total_proses ?>" data-duration="1600">0</span>
         </div>
         <div class="text-white/70 text-sm font-medium mt-1">Sedang Diproses</div>
-        <!-- Ring progress -->
-         <div class="flex items-end gap-1 mt-4 h-8">
-          <div class="sparkline-bar" style="height:40%"></div>
-          <div class="sparkline-bar" style="height:60%"></div>
-          <div class="sparkline-bar" style="height:45%"></div>
-          <div class="sparkline-bar" style="height:75%"></div>
-          <div class="sparkline-bar" style="height:55%"></div>
-          <div class="sparkline-bar" style="height:80%"></div>
-          <div class="sparkline-bar active" style="height:100%"></div>
+        <div class="flex items-end gap-1 mt-4 h-8">
+          <?php foreach ($heights as $i => $h): ?>
+            <div class="sparkline-bar <?= $i === count($heights)-1 ? 'active' : '' ?>" style="height:<?= $h ?>%"></div>
+          <?php endforeach; ?>
         </div>
       </div>
 
@@ -414,20 +353,15 @@ if (session_status() === PHP_SESSION_NONE) {
           <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:rgba(255,255,255,0.18)">
             <i class="fa-solid fa-circle-check text-white text-lg"></i>
           </div>
-          
         </div>
         <div class="font-display font-bold text-4xl text-white mb-1 leading-none">
-          <span class="counter" data-target="3247" data-duration="2000">0</span>
+          <span class="counter" data-target="<?= $total_selesai ?>" data-duration="2000">0</span>
         </div>
         <div class="text-white/70 text-sm font-medium mt-1">Pengaduan Selesai</div>
-          <div class="flex items-end gap-1 mt-4 h-8">
-          <div class="sparkline-bar" style="height:40%"></div>
-          <div class="sparkline-bar" style="height:60%"></div>
-          <div class="sparkline-bar" style="height:45%"></div>
-          <div class="sparkline-bar" style="height:75%"></div>
-          <div class="sparkline-bar" style="height:55%"></div>
-          <div class="sparkline-bar" style="height:80%"></div>
-          <div class="sparkline-bar active" style="height:100%"></div>
+        <div class="flex items-end gap-1 mt-4 h-8">
+          <?php foreach ($heights as $i => $h): ?>
+            <div class="sparkline-bar <?= $i === count($heights)-1 ? 'active' : '' ?>" style="height:<?= $h ?>%"></div>
+          <?php endforeach; ?>
         </div>
       </div>
 
@@ -438,36 +372,56 @@ if (session_status() === PHP_SESSION_NONE) {
           <div class="w-12 h-12 rounded-2xl flex items-center justify-center" style="background:rgba(255,255,255,0.18)">
             <i class="fa-solid fa-users text-white text-lg"></i>
           </div>
-        
         </div>
         <div class="font-display font-bold text-4xl text-white mb-1 leading-none">
-          <span class="counter" data-target="12580" data-duration="2200">0</span>
+          <span class="counter" data-target="<?= $total_users ?>" data-duration="2200">0</span>
         </div>
         <div class="text-white/70 text-sm font-medium mt-1">Total Pengguna</div>
         <div class="flex items-end gap-1 mt-4 h-8">
-          <div class="sparkline-bar" style="height:30%"></div>
-          <div class="sparkline-bar" style="height:50%"></div>
-          <div class="sparkline-bar" style="height:40%"></div>
-          <div class="sparkline-bar" style="height:65%"></div>
-          <div class="sparkline-bar" style="height:60%"></div>
-          <div class="sparkline-bar" style="height:85%"></div>
-          <div class="sparkline-bar active" style="height:100%"></div>
+          <?php foreach ($heights as $i => $h): ?>
+            <div class="sparkline-bar <?= $i === count($heights)-1 ? 'active' : '' ?>" style="height:<?= $h ?>%"></div>
+          <?php endforeach; ?>
         </div>
       </div>
 
     </div><!-- /grid -->
 
+    <!-- Additional Stats Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-border">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display font-bold text-navy-900">Pengaduan Baru</h3>
+          <i class="fa-solid fa-chart-line text-cobalt"></i>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="font-display text-3xl font-bold text-navy-900"><?= number_format($total_baru) ?></span>
+          <span class="text-sm text-gray-500">pengaduan</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Menunggu verifikasi admin</p>
+        <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full w-[<?= $total_pengaduan > 0 ? round(($total_baru / $total_pengaduan) * 100) : 0 ?>%] bg-gradient-to-r from-blue-400 to-blue-500 rounded-full"></div>
+        </div>
+      </div>
 
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-border">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display font-bold text-navy-900">Tingkat Penyelesaian</h3>
+          <i class="fa-solid fa-chart-pie text-cobalt"></i>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="font-display text-3xl font-bold text-navy-900"><?= $persentase_selesai ?>%</span>
+          <span class="text-sm text-gray-500">selesai</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Dari <?= number_format($total_pengaduan) ?> total pengaduan</p>
+        <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full w-[<?= $persentase_selesai ?>%] bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"></div>
+        </div>
+      </div>
+    </div>
 
-
-
-
-
-    <!-- Spacer -->
     <div class="h-8"></div>
   </div>
 </main>
-
 
 <script>
   // ── Date ────────────────────────────────────────────────────────
@@ -488,14 +442,7 @@ if (session_status() === PHP_SESSION_NONE) {
   }
 
   // ── Nav item active ─────────────────────────────────────────────
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', function(e) {
-      e.preventDefault();
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      this.classList.add('active');
-      if (window.innerWidth < 768) closeSidebar();
-    });
-  });
+  
 
   // ── Counter animation ───────────────────────────────────────────
   function animateCounter(el) {
@@ -516,6 +463,26 @@ if (session_status() === PHP_SESSION_NONE) {
     document.querySelectorAll('.counter').forEach(el => {
       setTimeout(() => animateCounter(el), 400);
     });
+  });
+
+  // ── Dropdown Toggle ─────────────────────────────────────────────
+  function toggleDropdown() {
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown) {
+      dropdown.classList.toggle('hidden');
+    }
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('userDropdown');
+    const avatarButton = document.querySelector('.avatar-ring')?.parentElement;
+    
+    if (dropdown && !dropdown.classList.contains('hidden')) {
+      if (avatarButton && !avatarButton.contains(event.target) && !dropdown.contains(event.target)) {
+        dropdown.classList.add('hidden');
+      }
+    }
   });
 </script>
 </body>
